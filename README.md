@@ -36,38 +36,41 @@ Note: The above was tested in Serendipity 1.5.2 and Wordpress 3.0
 
 ## History & Change log
 ### GitHub
-Migrated code from [Google Code](https://snowulf.googlecode.com/svn/trunk/wordpress/s9y-to-wp/) to new home on [GitHub](https://github.com/ShakataGaNai/s9y-to-wp) (2013-07-13)
+GitHub Move (2013-07-13) - [Jon Davis](http://snowulf.com)
+* Migrated code from [Google Code](https://snowulf.googlecode.com/svn/trunk/wordpress/s9y-to-wp/) to new home on [GitHub](https://github.com/ShakataGaNai/s9y-to-wp) 
+* http://snowulf.com/2013/07/13/s9y-to-wp-has-a-new-home-on-github/
 
 ### Version 1.5
-Version 1.5 Release (2010-10-27) - Simone Tellini (tellini.info)
+Version 1.5 Release (2010-10-27) - [Simone Tellini](http://www.tellini.info)
 
 * Added support for nested categories  
 * http://tellini.info/2010/10/serendipity-to-wordpress/   
 
 ### Version 1.4
-Version 1.4 Release (2010-06-10) - Jon Davis (Snowulf.com)
+Version 1.4 Release (2010-06-10) - [Jon Davis](http://snowulf.com)
 
 * Added draft/publish handling
 * Added method to get post numbers to match on either side (see readme.txt file)
 * Tested with S9y 1.5.2 to WP 2.9.2/3.0RC
 * http://snowulf.com/2010/06/11/serendipity-to-wordpress-post-import/
+* Code borrowed with permission from [Dobschat.de](http://www.dobschat.de/serendipity-s9y-importer-for-wordpress-1-3/#englishversion)
 
 ### Version 1.3
-Version 1.3 Released (08-Nov-2008) - Dobschat (dobschat.de)
+Version 1.3 Released (2008-11-08) - [Dobschat](http://www.dobschat.de/)
 
 * split articles with ``` <!--more--> ```
 * import article-tags from s9y
 
 ### Verison 1.2
-Version 1.2 Released (4-Sep-2008)
+Version 1.2 Released (2008-09-04)
 
 * Fixes Category Association
 * Breaks processing into smaller blogs for large imports
 * Performance improvements
 
 ### Version 1.1
-Version 1.1 Released (1/2/2006) - Dobschat (dobschat.de)
+Version 1.1 Released (2006-02-01) - [Dobschat](http://www.dobschat.de/)
 
 ### Version 1
-Version 1 released - Dobschat (dobschat.de)
+Version 1 released - [Dobschat](http://www.dobschat.de/)
 
