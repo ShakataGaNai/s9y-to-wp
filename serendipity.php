@@ -2,23 +2,7 @@
 /*
 Serendipity to Wordpress importer Version 1.5
 License: Public Domain or CC0 ( http://creativecommons.org/publicdomain/zero/1.0/ )
-
-Changelog:
-- Version 1 released
-- Version 1.1 Released (1/2/2006)
-- Version 1.2 Released (4-Sep-2008)
--- Fixes Category Association
--- Breaks processing into smaller blogs for large imports
--- Performance improvements
-- Version 1.3 Released (08-Nov-2008) - Dobschat(dobschat.de)
--- split articles with <!--more-->
--- import article-tags from s9y
-- Version 1.4 Release (2010-06-10) - Jon Davis (Snowulf.com)
--- Added draft/publish handling
--- Added method to get post numbers to match on either side (see readme.txt file)
--- Tested with S9y 1.5.2 to WP 2.9.2/3.0RC
-- Version 1.5 Release (2010-10-27) - Simone Tellini (tellini.info)
--- Added support for nested categories
+Change Log: Please see README.md
 */
 /**
 	Add These Functions to make our lives easier
