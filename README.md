@@ -10,9 +10,15 @@ Public Domain or [CC0](http://creativecommons.org/publicdomain/zero/1.0/)
 IF YOU HAVE MORE THAN 9000 POSTS OR COMMENTS:  Please change the "+9000" and "-9000" below (3 locations total)
 to be a number larger than what you have.  It is arbitrary, but important to prevent ID collisions during update.
 
+1. Install Wordpress as normal
 1. In the Wordpress DB
- * Truncate (remove) all records from: `wp_posts`, `wp_postmeta`, `wp_term_relationship`, `wp_term_taxonomy`, wp_comments, wp_commentmeta
- * Remove all records BUT default (ID 1) from `wp_terms`  (Honestly not sure about this one, but I found it is safer to leave default)
+ * ``` TRUNCATE wp_posts;```
+ * ``` TRUNCATE `wp_postmeta`; ```
+ * ``` TRUNCATE `wp_term_relationships`;  ```
+ * ``` TRUNCATE `wp_term_taxonomy`; ```
+ * ``` TRUNCATE `wp_comments`; ```
+ * ``` TRUNCATE `wp_commentmeta`; ```
+ * ``` DELETE  FROM wp_terms WHERE wp_terms.term_id!=1; ```
 2. Copy included serendipity.php to /wordpress/wp-admin/import/
 3. Login to Wordpress Admin Interface
 4. Goto Tools > Import
@@ -28,17 +34,28 @@ to be a number larger than what you have.  It is arbitrary, but important to pre
  *  ``` ALTER TABLE `wp_posts`  AUTO_INCREMENT = XXX;  -- Where XXX is the value returned from the select above  ```
 8. Should be done.
 
-Note: The above was tested in Serendipity 1.5.2 and Wordpress 3.0 
 
 ## Known issues 
 * Comments become "flat" (IE "parents" aren't translated)
 * After the import, you'll need to edit one of the categories (just open and save it) to fix the hierarchy.
 
 ## History & Change log
+
 ### GitHub
 GitHub Move (2013-07-13) - [Jon Davis](http://snowulf.com)
 * Migrated code from [Google Code](https://snowulf.googlecode.com/svn/trunk/wordpress/s9y-to-wp/) to new home on [GitHub](https://github.com/ShakataGaNai/s9y-to-wp) 
 * http://snowulf.com/2013/07/13/s9y-to-wp-has-a-new-home-on-github/
+
+### Version 1.7
+Version 1.7 ( 2012-03-15 ) - [Abdussamad Abdurrazzaq](http://www.abdussamad.com)
+* fixed user import
+* minor cleanups and removal of deprecated code.
+* http://web.archive.org/web/20120719111540/http://abdussamad.com/archives/473-Converting-from-Serendipity-to-WordPress.html
+
+### Version 1.6
+Version 1.6 Released ( 2012-02-15 ) - [Abdussamad Abdurrazzaq](http://www.abdussamad.com)
+* Support for nested comments
+* Works as a plugin in WordPress
 
 ### Version 1.5
 Version 1.5 Release (2010-10-27) - [Simone Tellini](http://www.tellini.info)
@@ -73,4 +90,3 @@ Version 1.1 Released (2006-02-01) - [Dobschat](http://www.dobschat.de/)
 
 ### Version 1
 Version 1 released - [Dobschat](http://www.dobschat.de/)
-

@@ -1,26 +1,42 @@
 <?php
 /*
-Serendipity to Wordpress importer Version 1.5
+Plugin Name: Serendipity to Wordpress importer
+Description: Import content from a serendipity (s9y) powered weblog into WordPress
 License: Public Domain or CC0 ( http://creativecommons.org/publicdomain/zero/1.0/ )
-Change Log: Please see README.md
+Version: 1.7
+Changelog: Please see README.md
 */
-/**
-	Add These Functions to make our lives easier
-**/
+
 set_time_limit(0);
 ini_set('display_errors', true);
 
-if(!function_exists('get_catbynicename'))
-{
-	function get_catbynicename($category_nicename) 
-	{
-	global $wpdb;
-	
+/* borrowed from movable type importer plugin */
+if ( !defined('WP_LOAD_IMPORTERS') )
+	return;
+
+
+// Load Importer API
+require_once ABSPATH . 'wp-admin/includes/import.php';
+
+if ( !class_exists( 'WP_Importer' ) ) {
+	$class_wp_importer = ABSPATH . 'wp-admin/includes/class-wp-importer.php';
+	if ( file_exists( $class_wp_importer ) )
+		require_once $class_wp_importer;
+}
+/* End borrowed */
+
+/**
+	Add These Functions to make our lives easier
+**/
+
+
+if(!function_exists('get_catbynicename')) {
+    function get_catbynicename($category_nicename) {
+        global $wpdb;
 	$cat_id -= 0; 	// force numeric
-	$name = $wpdb->get_var('SELECT cat_ID FROM '.$wpdb->categories.' WHERE category_nicename="'.$category_nicename.'"');
-	
+	$name = $wpdb->get_var('SELECT cat_ID FROM '.$wpdb->categories.' WHERE category_nicename="'.$category_nicename.'"');	
 	return $name;
-	}
+    }
 }
 
 if(!function_exists('get_comment_count'))
@@ -72,7 +88,17 @@ function set_tags_from_s9y($item, $key, $post_id) {
 /**
 	The Main Importer Class
 **/
-class Serendipity_Import {
+class Serendipity_Import extends WP_Importer  {
+
+        function connect_s9ydb() {
+		 $s9ydb = new wpdb(get_option('s9yuser'), 
+	         	           get_option('s9ypass'), 
+                                   get_option('s9yname'), 
+                                   get_option('s9yhost'));
+                 $s9ydb->set_charset($s9ydb->dbh, get_option('s9ycharset'));
+ 		 set_magic_quotes_runtime(0);
+		 return $s9ydb;
+        }
 
 	function header() 
 	{
@@ -100,11 +126,7 @@ class Serendipity_Import {
 	{
 		global $wpdb;
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		// Show errors, per http://code.google.com/p/snowulf/issues/detail?id=1
-		$s9ydb->show_errors();
-
-		set_magic_quotes_runtime(0);
+		$s9ydb = $this->connect_s9ydb(); 
 		$prefix = get_option('spre');
 		
 		// Get Categories
@@ -119,50 +141,60 @@ class Serendipity_Import {
 	{
 		global $wpdb;
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		set_magic_quotes_runtime(0);
-		$prefix = get_option('spre');
+		$s9ydb = $this->connect_s9ydb(); 
 		
 		// Get Users
 		
 		return $s9ydb->get_results('SELECT
-										username,
-										realname,
-										email,
-										userlevel
-							   		FROM '.$prefix.'authors', ARRAY_A);
+							username,
+							realname,
+							email,
+							userlevel
+					    FROM '.$prefix.'authors', ARRAY_A);
 	}
 	
 	function get_s9y_posts($start=0)
 	{
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		set_magic_quotes_runtime(0);
+		$s9ydb = $this->connect_s9ydb(); 
 		$prefix = get_option('spre');
 		
 		// Get Posts
 		// dobschat - 2008/11/08 - added "author"
 		$posts = $s9ydb->get_results('SELECT 
-										id,
-										timestamp,
-										authorid,
-										author,
-										last_modified,
-										title,
-										body,
-										extended, 
-										isdraft
-							   		FROM '.$prefix.'entries LIMIT '.$start.',100', ARRAY_A);
+							id,
+							timestamp,
+							authorid,
+							author,
+							last_modified,
+							title,
+							body,
+							extended, 
+							isdraft
+ 			   		      FROM '.$prefix.'entries LIMIT '.$start.',100', ARRAY_A);
 		
 		return $posts;
+	}
+
+        // Christian Harms - 2012/08/01 -- reading geotags from serendipity_event_geotag
+        function get_s9y_geotags()
+	{
+		global $wpdb;
+		// General Housekeeping
+		$s9ydb = $this->connect_s9ydb(); 
+		$prefix = get_option('spre');
+
+		// Get only the geo_tags stored in the entryproperties table
+		
+		return $s9ydb->get_results('SELECT entryid, property, value 
+                                            FROM '.$prefix.'entryproperties', ARRAY_A);
 	}
 	
 	function get_s9y_comments()
 	{
 		global $wpdb;
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		set_magic_quotes_runtime(0);
+		$s9ydb = $this->connect_s9ydb(); 
 		$prefix = get_option('spre');
 		
 		// Get Comments
@@ -173,8 +205,7 @@ class Serendipity_Import {
 	{
 		global $wpdb;
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		set_magic_quotes_runtime(0);
+		$s9ydb = $this->connect_s9ydb(); 
 		$prefix = get_option('spre');
 		
 		return $s9ydb->get_results("select * from ".$prefix."category, ".$prefix."entrycat, ".$prefix."entries where ".$prefix."entries.id = ".$prefix."entrycat.entryid and ".$prefix."category.categoryid=".$prefix."entrycat.categoryid and ".$prefix."entries.id =$post_id;");
@@ -185,8 +216,7 @@ class Serendipity_Import {
 	{
 		global $wpdb;
 		// General Housekeeping
-		global $s9ydb; if ( !$s9ydb ) $s9ydb = new wpdb(get_option('s9yuser'), get_option('s9ypass'), get_option('s9yname'), get_option('s9yhost'));
-		set_magic_quotes_runtime(0);
+		$s9ydb = $this->connect_s9ydb(); 
 		$prefix = get_option('spre');
 		
 		return $s9ydb->get_results("select ".$prefix."entrytags.tag AS tag from ".$prefix."entrytags, ".$prefix."entries where ".$prefix."entries.id = ".$prefix."entrytags.entryid and ".$prefix."entries.id =$post_id;", ARRAY_N);
@@ -233,6 +263,45 @@ class Serendipity_Import {
 		echo __('No Categories to Import!');
 		return false;
 	}
+
+        // Christian Harms - 2012/08/01 -- convert into post_meta for the WP Geo plugin
+	function geotags2wp($geotags='')
+	{
+		global $wpdb;	
+		$s9ygeotags2wp = array();
+		$count = 0;
+		if (is_array($geotags))
+		{
+			echo '<p>'.__('Importing '.count($geotags).' Geo-Tags...').'<br /><br /></p>';
+			
+			foreach ($geotags as $geotag) 
+			{
+				extract($geotag);
+
+				//http://codex.wordpress.org/Function_Reference/update_post_meta
+				//if not exists, add_post_meta will be called
+				
+				if ($property == 'geo_long' || $property == 'geo_lat')
+				{
+					if ($property == 'geo_long') $meta_key = '_wp_geo_longitude';
+					if ($property == 'geo_lat') $meta_key = '_wp_geo_latitude';
+
+					$count++;
+					update_post_meta($entryid, $meta_key, $value);
+					array_push($s9ygeotags2wp, array('post_id'=>$entryid,
+                                                                 'meta_key'=>$meta_key,
+                                                                 'meta_value'=>$value));
+				}
+			}
+			// Store geo_tags translation for future use
+			add_option('s9ygeotags2wp', $s9ygeotags2wp);
+			echo '<p>'.sprintf(__('Done! <strong>%1$s</strong> geotags imported.'), $count).'<br /><br /></p>';
+			return true;
+		}
+		echo __('No Geo-Tags to Import!');
+		return false;
+	}
+
 	
 	function users2wp($users='')
 	{
@@ -254,7 +323,7 @@ class Serendipity_Import {
 				$user_login = $wpdb->escape($username);
 				$user_name = $wpdb->escape($realname);
 				
-				if($uinfo = get_userdatabylogin($name))
+				if($uinfo = get_user_by('login', $user_login))
 				{
 					
 					wp_insert_user(array(
@@ -265,15 +334,16 @@ class Serendipity_Import {
 								'user_url'		=> 'http://',
 								'display_name'	=> $user_login)
 								);
-					$ret_id = $unifo->ID;
+					$ret_id = $uinfo->ID;
 				}
 				else 
 				{
 					$ret_id = wp_insert_user(array(
 								'user_login'	=> $user_login,
+								'user_pass'     => 'password123',
 								'user_nicename'	=> $user_name,
 								'user_email'	=> $email,
-								'user_url'		=> 'http://',
+								'user_url'	=> 'http://',
 								'display_name'	=> $user_name)
 								);
 				}
@@ -284,13 +354,13 @@ class Serendipity_Import {
 				
 				// Update Usermeta Data
 				$user = new WP_User($ret_id);
-				if('10' == $transperms[$privs]) { $user->set_role('administrator'); }
-				if('5'  == $transperms[$privs]) { $user->set_role('editor'); }
-				if('2'  == $transperms[$privs]) { $user->set_role('contributor'); }
+				if('10' == $transperms[$userlevel]) { $user->set_role('administrator'); }
+				if('5'  == $transperms[$userlevel]) { $user->set_role('editor'); }
+				if('2'  == $transperms[$userlevel]) { $user->set_role('contributor'); }
 
 				
-				update_usermeta( $ret_id, 'wp_user_level', $transperms[$privs] );
-				update_usermeta( $ret_id, 'rich_editing', 'false');
+				update_user_meta( $ret_id, 'wp_user_level', $transperms[$userlevel] );
+				update_user_meta( $ret_id, 'rich_editing', 'false');
 			}// End foreach($users as $user)
 			
 			// Store id translation array for future use
@@ -311,8 +381,8 @@ class Serendipity_Import {
 		// General Housekeeping
 		global $wpdb;
 		$count = 0;
-        $s9yposts2wpposts = get_option('s9yposts2wpposts');
-        if ( !$s9yposts2wpposts ) $s9yposts2wpposts = array();
+		$s9yposts2wpposts = get_option('s9yposts2wpposts');
+		if ( !$s9yposts2wpposts ) $s9yposts2wpposts = array();
 
 		$cats = array();
 
@@ -339,7 +409,7 @@ class Serendipity_Import {
 				}
 
 				// dobschat - 2008/11/08 - chenged $authorid -> $author
-				$uinfo = ( get_userdatabylogin( $author ) ) ? get_userdatabylogin( $author ) : 1;
+				$uinfo = ( get_user_by( 'login', $author ) ) ? get_user_by( 'login', $author ) : 1;
 				$authorid = ( is_object( $uinfo ) ) ? $uinfo->ID : $uinfo ;
 
 				$post_title = $wpdb->escape($title);
@@ -382,7 +452,7 @@ class Serendipity_Import {
 							'post_title'		=> $post_title,
 							'post_content'		=> $post_body,
 							'post_status'		=> $post_status,
-							'menu_order'		=> $post_id,					// Jon (Snowulf.com) 2010-06-04 -- Added for some ID workaround hackery
+							'menu_order'		=> $post_id,	// Jon (Snowulf.com) 2010-06-04 -- Added for some ID workaround hackery
 							'post_name'			=> sanitize_title($post_title))
 							);
 				}
@@ -400,8 +470,9 @@ class Serendipity_Import {
 				}
 				$cats = (is_array($wpcats)) ? $wpcats : (array) $wpcats;
 				
-				if(!empty($cats)) { wp_set_post_cats('', $ret_id, $cats); }
-				else { wp_set_post_cats('', $ret_id, get_option('default_category')); }
+				if(!empty($cats)) { wp_set_post_categories( $ret_id, $cats); }
+				else { wp_set_post_categories( $ret_id, get_option('default_category')); }
+
 				// dobschat - 2008/11/08 - added importing tags
 				$tags = $this->get_s9y_tag_assoc($id);
 				if (is_array($tags)) {
@@ -436,9 +507,11 @@ class Serendipity_Import {
 				$count++;
 				extract($comment);
 				// WordPressify Data
-				//$comment_ID = (int) $id;
+				$comment_ID = (int) $id;
 				//$comment_post_ID = find_comment_parent($postarr, $id);
 				$comment_approved = ($status == 'approved') ? 1 : 0;
+				//parent comment not parent post;
+				$comment_parent=$parent_id;
 				$name = $wpdb->escape(($author));
 				$email = $wpdb->escape($email);
 				$web = $wpdb->escape($url);
@@ -451,9 +524,10 @@ class Serendipity_Import {
 					// Update comments
 
 					$ret_id = wp_update_comment(array(
-							'comment_ID'			=> comment_exists($name, $posted),
+							'comment_ID'			=> $comment_ID,
 							'comment_post_ID'		=> find_comment_parent($postarr, $entry_id),
 							'comment_author'		=> $name,
+							'comment_parent'		=> $comment_parent,
 							'comment_author_email'	=> $email,
 							'comment_author_url'	=> $web,
 							'comment_author_IP'		=> $ip,
@@ -466,6 +540,7 @@ class Serendipity_Import {
 				{
 					// Insert comments
 					$ret_id = wp_insert_comment(array(
+							'comment_ID'			=> $comment_ID,
 							'comment_post_ID'		=> find_comment_parent($postarr, $entry_id),
 							'comment_author'		=> $name,
 							'comment_author_email'	=> $email,
@@ -473,8 +548,11 @@ class Serendipity_Import {
 							'comment_author_IP'		=> $ip,
 							'comment_date'			=> $posted,
 							'comment_content'		=> $message,
+							'comment_parent'		=> $comment_parent,
 							'comment_approved'		=> $comment_approved)
+
 							);
+				$wpdb->query("UPDATE $wpdb->comments SET comment_ID=$comment_ID WHERE comment_ID=$ret_id");
 				}
 				//$s9ycm2wpcm[$comment_ID] = $ret_id;
 			}
@@ -507,7 +585,7 @@ class Serendipity_Import {
 		echo '</form>';
 
 	}
-	
+
 	function import_users()
 	{
 		// User Import
@@ -555,9 +633,21 @@ class Serendipity_Import {
 		$this->comments2wp($comments);
 		
 		echo '<form action="admin.php?import=serendipity&amp;step=5" method="post">';
-		printf('<input type="submit" name="submit" value="%s" />', __('Finish'));
+		printf('<input type="submit" name="submit" value="%s" />', __('Import Geo-Tags (if available)'));
 		echo '</form>';
 	}
+	
+        // Christian Harms - 2012/08/01 -- import geo tags as postmeta for WP Geo pluglin
+        function import_geotags()
+	{
+		//read all tags
+		$tags = $this->get_s9y_geotags();
+		$this->geotags2wp($tags);
+
+		echo '<form action="admin.php?import=serendipity&amp;step=6" method="post">';
+		printf('<input type="submit" name="submit" value="%s" />', __('Finish'));
+		echo '</form>';
+	}		
 	
 	function cleanup_s9yimport()
 	{
@@ -572,6 +662,7 @@ class Serendipity_Import {
 		delete_option('s9ypass');
 		delete_option('s9yname');
 		delete_option('s9yhost');
+		delete_option('s9ygeotags2wp');
 		$this->tips();
 	}
 	
@@ -579,7 +670,7 @@ class Serendipity_Import {
 	{
 		echo '<p>'.__('Welcome to WordPress.  We hope (and expect!) that you will find this platform incredibly rewarding!  As a new WordPress user coming from serendipity, there are some things that we would like to point out.  Hopefully, they will help your transition go as smoothly as possible.').'</p>';
 		echo '<h3>'.__('Users').'</h3>';
-		echo '<p>'.sprintf(__('You have already setup WordPress and have been assigned an administrative login and password.  Forget it.  You didn\'t have that login in serendipity, why should you have it here?  Instead we have taken care to import all of your users into our system.  Unfortunately there is one downside.  Because both WordPress and serendipity uses a strong encryption hash with passwords, it is impossible to decrypt it and we are forced to assign temporary passwords to all your users.  <strong>Every user has the same username, but their passwords are reset to password123.</strong>  So <a href="%1$s">Login</a> and change it.'), '/wp-login.php').'</p>';
+		echo '<p>'.__('You have already setup WordPress and have been assigned an administrative login and password.  Forget it.  You didn\'t have that login in serendipity, why should you have it here?  Instead we have taken care to import all of your users into our system.  Unfortunately there is one downside.  Because both WordPress and serendipity uses a strong encryption hash with passwords, it is impossible to decrypt it and we are forced to assign temporary passwords to all your users.') . ' <strong>' . __( 'Every user has the same username, but their passwords are reset to password123. It is strongly recommended that you change passwords immediately.') .'</strong></p>';
 		echo '<h3>'.__('Preserving Authors').'</h3>';
 		echo '<p>'.__('Secondly, we have attempted to preserve post authors.  If you are the only author or contributor to your blog, then you are safe.  In most cases, we are successful in this preservation endeavor.  However, if we cannot ascertain the name of the writer due to discrepancies between database tables, we assign it to you, the administrative user.').'</p>';
 			echo '<h3>'.__('WordPress Resources').'</h3>';
@@ -600,6 +691,7 @@ class Serendipity_Import {
 		printf('<li><label for="dbname">%s</label> <input type="text" id="dbname" name="dbname" /></li>', __('Serendipity Database Name:'));
 		printf('<li><label for="dbhost">%s</label> <input type="text" id="dbhost" name="dbhost" value="localhost" /></li>', __('Serendipity Database Host:'));
 		printf('<li><label for="dbprefix">%s</label> <input type="text" name="dbprefix" id="dbprefix"  /></li>', __('Serendipity Table prefix (if any):'));
+		printf('<li><label for="dbcharset">%s</label> <input type="text" name="dbcharset" id="dbcharset" value="utf8" /></li>', __('Serendipity Table charset:'));
 		echo '</ul>';
 	}
 	
@@ -645,6 +737,12 @@ class Serendipity_Import {
 					delete_option('spre');
 				add_option('spre',$_POST['dbprefix']); 
 			}			
+			if($_POST['dbcharset'])
+			{
+				if(get_option('s9ycharset'))
+					delete_option('s9ycharset');
+				add_option('s9ycharset',$_POST['dbcharset']); 
+			}			
 
 
 		}
@@ -668,6 +766,9 @@ class Serendipity_Import {
 				$this->import_comments();
 				break;
 			case 5 :
+				$this->import_geotags();
+				break;
+			case 6 :
 				$this->cleanup_s9yimport();
 				break;
 		}
@@ -683,4 +784,3 @@ class Serendipity_Import {
 
 $s9y_import = new Serendipity_Import();
 register_importer('serendipity', 'Serendipity', __('Import posts from a Serendipity Blog'), array ($s9y_import, 'dispatch'));
-?>
